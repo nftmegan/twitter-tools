@@ -1,0 +1,27 @@
+{
+  "name": "twitter-tool-web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.468.0",
+    "next": "16.0.10",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwind-merge": "^2.5.5"
+  },
+  "devDependencies": {
+    "@types/node": "25.0.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "latest",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0-alpha.1",
+    "typescript": "5.9.3"
+  }
+}

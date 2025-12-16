@@ -1,0 +1,13 @@
+{
+  "name": "twitter-tool-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "server": "cd apps/server && pnpm dev",
+    "web": "cd apps/web && pnpm dev",
+    "dev": "concurrently \"pnpm run server\" \"pnpm run web\" --names \"🤖,NEXT\" --prefix-colors \"yellow,blue\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
