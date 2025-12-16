@@ -1,56 +1,46 @@
-// prisma/schema.prisma
-
+// apps/server/prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "postgresql" // or "sqlite" if you are local
 }
 
-// --------------------------------------------------------
-// 1. The "Source of Truth" (Current State of a Post)
-// --------------------------------------------------------
 model Post {
-  id        String   @id // The X Post ID
-  text      String?  // The content
-  author    String   // The handle (e.g., "YourMainAccount")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id
+  text        String?
+  author      String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastScraped DateTime  @default(now()) // Added field
 
-  // Current Metrics
-  views     Int      @default(0)
-  likes     Int      @default(0)
-  reposts   Int      @default(0)
-  replies   Int      @default(0)
+  views       Int       @default(0)
+  likes       Int       @default(0)
+  reposts     Int       @default(0)
+  replies     Int       @default(0)
 
-  // Relation
-  snapshots Snapshot[]
+  snapshots   Snapshot[]
 }
 
-// --------------------------------------------------------
-// 2. The "Time Machine" (Historical Data)
-// --------------------------------------------------------
 model Snapshot {
   id        Int      @id @default(autoincrement())
   timestamp DateTime @default(now())
   
-  // Metrics at this specific moment
   views     Int
   likes     Int
   reposts   Int
   replies   Int
+  
+  hotness   Int      // Added field
+  mood      String   // Added field
 
-  // Relation
   postId    String
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
 }
 
-// --------------------------------------------------------
-// 3. System Logs
-// --------------------------------------------------------
 model SystemLog {
   id        Int      @id @default(autoincrement())
   level     String

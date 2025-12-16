@@ -1,58 +1,60 @@
+// apps/server/src/queue/scheduler.ts
 import { Queue } from 'bullmq';
 import { redisConnection } from '../config/redis.js';
 import { logger } from '../utils/logger.js';
-import { ENV } from '../config/env.js';
 
-export const scraperQueue = new Queue('scraper-queue', { 
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 1,
-    removeOnComplete: true, 
-    removeOnFail: 100,
-  }
-});
-
-let isRunning = false;
+export const scraperQueue = new Queue('scraper-queue', { connection: redisConnection });
 
 export async function startBot() {
-  if (isRunning) return;
-  isRunning = true;
-  logger.info('🟢 STARTING SURVEILLANCE...');
+  logger.info('🤖 Bot Start Sequence Initiated...');
 
-  if (ENV.PROXY) {
-    logger.info(`🛡️ Global Proxy Enabled: ${ENV.PROXY.server}`);
-  } else {
-    logger.warn('⚠️ Running in RAW mode (No Proxy).');
-  }
+  // 1. Clean old jobs to prevent duplicates
+  await scraperQueue.drain();
 
-  // Define Targets (You can expand this later)
-  const targets = [
-    { target: 'elonmusk', burner: ENV.BURNER_ACCOUNT }
-  ];
+  // 2. Define the job data
+  const jobData = {
+    targetAccount: 'elonmusk', // Make this dynamic if needed
+    burnerAccount: 'default_burner'
+  };
 
-  for (const t of targets) {
-    const jobs = await scraperQueue.getRepeatableJobs();
-    for (const j of jobs) await scraperQueue.removeRepeatableByKey(j.key);
+  // 3. Add a REPEATABLE job (Runs every 15 minutes)
+  // This is the architecture fix: The Queue manages the schedule, not the worker.
+  await scraperQueue.add('scrape-job', jobData, {
+    repeat: {
+      every: 15 * 60 * 1000, // 15 minutes
+      limit: 1000 // Optional safety limit
+    },
+    jobId: 'main-scraper-loop' // Singleton ID to prevent duplicates
+  });
 
-    await scraperQueue.add(
-      'scrape-job', 
-      { 
-        targetAccount: t.target,
-        burnerAccount: t.burner,
-        proxy: ENV.PROXY 
-      },
-      { jobId: `run-${t.target}-${Date.now()}` }
-    );
-    logger.info(`🚀 Queued target: @${t.target}`);
-  }
+  // 4. Trigger one immediately so we don't wait 15 mins for the first run
+  await scraperQueue.add('scrape-job', jobData, {
+    jobId: `immediate-${Date.now()}`
+  });
+
+  logger.info('✅ Bot Scheduled: Runs every 15 minutes.');
 }
 
 export async function stopBot() {
-  isRunning = false;
-  logger.info('🔴 STOPPING SURVEILLANCE...');
+  logger.info('🛑 Stopping Bot...');
+  
+  // Remove the repeatable job configuration
+  const repeatableJobs = await scraperQueue.getRepeatableJobs();
+  
+  for (const job of repeatableJobs) {
+    await scraperQueue.removeRepeatableByKey(job.key);
+  }
+  
+  // Clear waiting queue
   await scraperQueue.drain();
+  
+  logger.info('✅ Bot Stopped. No further jobs will run.');
 }
 
-export function getStatus() {
-  return { running: isRunning };
+export async function getStatus() {
+  const counts = await scraperQueue.getJobCounts();
+  return { 
+    status: 'active', 
+    queue: counts 
+  };
 }
